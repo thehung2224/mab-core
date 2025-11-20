@@ -1,0 +1,212 @@
+<?php
+/*
+Plugin Name: MaB Core
+Description: Core plugin for all MaB functionalities.
+Version: 1.0
+Author: MaB
+*/
+
+// Auto-link specific URLs in post content
+add_filter( 'the_content', 'auto_link_urls_with_keywords' );
+
+function auto_link_urls_with_keywords( $content ) {
+	// Define keywords to match (only these URLs will be linked)
+	$keywords = array(
+		'trbt.cc',
+		'nitroflare.com',
+		'rapidgator.net',
+		'frdl.io',
+		'turbobit.net',
+		'ddownload.com',
+		'uploadgig.com',
+		// Add more domains or keywords here
+	);
+
+	// Regex to match plain URLs
+	$pattern = '~(?<!["\'])\bhttps?://[^\s<]+~i';
+
+	// Wrap matching URLs in <a> tags
+	$content = preg_replace_callback( $pattern, function( $matches ) use ( $keywords ) {
+		$url = $matches[0];
+
+		foreach ( $keywords as $keyword ) {
+			if ( strpos( $url, $keyword ) !== false ) {
+				$escaped = esc_url( $url );
+				return '<a href="' . $escaped . '" target="_blank" rel="noopener noreferrer">' . $escaped . '</a>';
+			}
+		}
+
+		// If no keyword match, return original URL
+		return $url;
+	}, $content );
+
+	return $content;
+}	
+
+// Convert filehost links to buttons – SUPER SIMPLE & SAFE
+function convert_download_links_to_buttons($content) {
+    if (!is_singular() || is_admin()) return $content;
+
+    $hosts = 'nitroflare\.com|rapidgator\.net|ddownload\.com|turbobit\.net|katfile\.com|fikper\.com|uploadgig\.com';
+
+    // Find <a href="...host...">full-link-text</a> and turn into button
+    $pattern = '#<a\s+(?:[^>]*?\s+)?href=["\'](https?://(?:[^/]*\.)?(' . $hosts . ')/[^"\']*)["\'](?:[^>]*)>([^<]+)</a>#i';
+
+    return preg_replace_callback($pattern, function($m) {
+        $url = $m[1];
+        $text = $m[3];
+
+        // Get host name
+        preg_match('#//([^/]+)#', $url, $host_match);
+        $host = str_replace('www.', '', $host_match[1]);
+        $host = explode('.', $host)[0];
+        if ($host === 'DDOWNLOAD') $host = 'DDOWNLOAD';
+
+        return '<a href="' . esc_url($url) . '" class="download-btn download-btn-' . strtolower($host) . '" target="_blank">
+                    <span class="btn-dot"></span> ' . $host . '
+                </a>';
+    }, $content);
+}
+add_filter('the_content', 'convert_download_links_to_buttons', 100);
+
+// =============================================
+// 1. Add CSS classes for alive/dead status
+// =============================================
+function mab_add_button_status_css() {
+    if (!is_singular()) return;
+    ?>
+    <style>
+    .btn-dot {
+        transition: all 0.4s;
+        box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+    .download-btn.alive .btn-dot {
+        background: #28a745;
+        box-shadow: 0 0 20px #28a745;
+        animation: pulse-green 2s infinite;
+    }
+    .download-btn.dead .btn-dot {
+        background: #dc3545;
+    }
+    @keyframes pulse-green {
+        0%, 100% { box-shadow: 0 0 20px #28a745; }
+        50% { box-shadow: 0 0 30px #28a745; }
+    }
+    </style>
+    <?php
+}
+add_action('wp_head', 'mab_add_button_status_css');
+
+// =============================================
+// 2. JavaScript + AJAX to check status
+// =============================================
+function mab_enqueue_status_checker() {
+    if (!is_singular()) return;
+
+    wp_enqueue_script('jquery');
+    ?>
+    <script>
+    jQuery(function($) {
+        var buttons = $('.download-btn');
+        var urls = [];
+
+        buttons.each(function() {
+            var url = $(this).attr('href');
+            if (urls.indexOf(url) === -1) urls.push(url);
+            $(this).addClass('checking'); // temporary state
+        });
+
+        if (urls.length === 0) return;
+
+        function checkLinks() {
+            $.post('<?php echo admin_url("admin-ajax.php"); ?>', {
+                action: 'mab_check_links',
+                urls: urls
+            }, function(res) {
+                if (res.success) {
+                    $.each(res.data, function(url, alive) {
+                        var selector = '.download-btn[href="' + url + '"]';
+                        $(selector).removeClass('checking alive dead');
+                        if (alive) {
+                            $(selector).addClass('alive');
+                        } else {
+                            $(selector).addClass('dead');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Check now + every 60 seconds
+        checkLinks();
+        setInterval(checkLinks, 60000);
+    });
+    </script>
+    <?php
+}
+add_action('wp_footer', 'mab_enqueue_status_checker');
+
+// =============================================
+// 3. AJAX Handler – Super Accurate Detection
+// =============================================
+add_action('wp_ajax_mab_check_links', 'mab_check_links_callback');
+add_action('wp_ajax_nopriv_mab_check_links', 'mab_check_links_callback');
+
+function mab_check_links_callback() {
+    $urls = $_POST['urls'] ?? [];
+    $result = [];
+
+    foreach ($urls as $url) {
+        $url = trim($url);
+        if (!$url) continue;
+
+        // Cache for 10 minutes
+        $cache_key = 'mab_link_' . md5($url);
+        $cached = get_transient($cache_key);
+        if ($cached !== false) {
+            $result[$url] = $cached;
+            continue;
+        }
+
+        $response = wp_remote_get($url, [
+            'timeout' => 15,
+            'user-agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'sslverify' => false,
+            'headers' => ['Referer' => 'https://google.com/']
+        ]);
+
+        $alive = true;
+
+        if (!is_wp_error($response)) {
+            $body = strtolower(wp_remote_retrieve_body($response));
+
+            // Exact checks based on your table
+            if (strpos($url, 'nitroflare.com') !== false) {
+                if (strpos($body, 'no longer available') !== false || strpos($body, 'has been removed') !== false) $alive = false;
+            }
+            elseif (strpos($url, 'rapidgator.net') !== false) {
+                if (strpos($body, 'this file has been removed') !== false || strpos($body, 'file not found') !== false) $alive = false;
+            }
+            elseif (strpos($url, 'turbobit.net') !== false) {
+                if (strpos($body, 'due to copyright') !== false || strpos($body, 'file not found') !== false) $alive = false;
+            }
+            elseif (strpos($url, 'katfile.com') !== false) {
+                if (strpos($body, 'file not found') !== false || strpos($body, 'this file has been removed') !== false) $alive = false;
+            }
+            elseif (strpos($url, 'ddownload.com') !== false) {
+                if (strpos($body, 'file has been deleted') !== false) $alive = false;
+            }
+            else {
+                // Generic fallback
+                if (strpos($body, 'not found') !== false || strpos($body, 'removed') !== false || strpos($body, 'deleted') !== false) $alive = false;
+            }
+        } else {
+            $alive = false;
+        }
+
+        set_transient($cache_key, $alive, 10 * MINUTE_IN_SECONDS);
+        $result[$url] = $alive;
+    }
+
+    wp_send_json_success($result);
+}

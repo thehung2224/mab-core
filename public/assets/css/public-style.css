@@ -1,0 +1,43 @@
+.mab-download-box {
+    text-align: center;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+.mab-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+.mab-btn {
+    padding: 10px 20px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.3s;
+}
+.mab-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ccc;
+}
+.mab-btn.alive {
+    background: #d4edda;
+    color: #155724;
+}
+.mab-btn.alive .mab-dot {
+    background: #28a745;
+}
+.mab-btn.dead {
+    background: #f8d7da;
+    color: #721c24;
+}
+.mab-btn.dead .mab-dot {
+    background: #dc3545;
+}
