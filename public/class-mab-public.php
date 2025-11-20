@@ -3,11 +3,13 @@ class MaB_Core_Public {
 
     public function __construct() {
         add_filter( 'the_content', [ $this, 'auto_link_urls' ], 10 );
+        add_filter( 'the_content', [ $this, 'smart_download_heading' ], 90 );
         add_filter( 'the_content', [ $this, 'convert_to_buttons' ], 100 );
-        add_action( 'wp_head', [ $this, 'add_dynamic_css' ] );  // Ensure this matches method name
-        add_action( 'wp_footer', [ $this, 'add_status_js' ] );
+        add_action( 'wp_head', [ $this, 'add_dynamic_css' ] );
+        add_action( 'wp_footer', [ $this, 'add_status_js' ] );  // Ensure this matches method name
         add_action( 'wp_ajax_mab_check_links', [ $this, 'check_links' ] );
         add_action( 'wp_ajax_nopriv_mab_check_links', [ $this, 'check_links' ] );
+        
     }
 
     public function auto_link_urls( $content ) {
@@ -16,7 +18,9 @@ class MaB_Core_Public {
         $keywords = [];
         $hosters = get_option( 'mab_hosters', [] );
         foreach ( $hosters as $hoster ) {
-            $keywords[] = strtolower( str_replace( ' ', '', $hoster['name'] ) ) . '.com';
+            $name_clean = preg_replace('/^(https?:\/\/|www\.)/i', '', strtolower(trim($hoster['name'])));
+            $match_domain = (strpos($name_clean, '.') === false) ? $name_clean . '.com' : $name_clean;
+            $keywords[] = $match_domain;
         }
         if ( empty( $keywords ) ) return $content;
 
@@ -28,7 +32,7 @@ class MaB_Core_Public {
             foreach ( $keywords as $keyword ) {
                 if ( strpos( $url, $keyword ) !== false ) {
                     $escaped = esc_url( $url );
-                    return '<a href="' . $escaped . '" target="_blank" rel="noopener noreferrer">' . $escaped . '</a>';
+                    return '<a href="' . $escaped . '" target="_blank">' . $escaped . '</a>';
                 }
             }
 
@@ -38,31 +42,59 @@ class MaB_Core_Public {
         return $content;
     }
 
+    public function smart_download_heading( $content ) {
+        if ( ! is_singular() || is_admin() ) return $content;
+
+        return preg_replace_callback( '#(<blockquote[^>]*>)(.*?)(</blockquote>)#is', function( $m ) {
+            $blockquote_open = $m[1];
+            $inside = $m[2];
+            $blockquote_close = $m[3];
+
+            // Check if already has "download links" text
+            if ( preg_match( '/download\s+links/i', $inside ) ) {
+                return $m[0]; // Skip - already has heading
+            }
+
+            // Add heading before first button/link
+            $heading = '<h4>Download from free hosting</h4>';
+            $inside = $heading . $inside;
+
+            return $blockquote_open . $inside . $blockquote_close;
+        }, $content );
+    }
+
     public function convert_to_buttons( $content ) {
         if ( ! is_singular() || is_admin() ) return $content;
 
         $hosts = [];
         $hosters = get_option( 'mab_hosters', [] );
         foreach ( $hosters as $hoster ) {
-            $hosts[] = preg_quote( strtolower( str_replace( ' ', '', $hoster['name'] ) ) . '.com', '#' );
+            $name_clean = preg_replace('/^(https?:\/\/|www\.)/i', '', strtolower(trim($hoster['name'])));
+            $match_domain = (strpos($name_clean, '.') === false) ? $name_clean . '.com' : $name_clean;
+            $hosts[] = preg_quote( $match_domain, '#' );
         }
         if ( empty( $hosts ) ) return $content;
 
         $hosts_pattern = implode( '|', $hosts );
+        $post_title = esc_attr( get_the_title() );
 
         $pattern = '#<a\s+(?:[^>]*?\s+)?href=["\'](https?://(?:[^/]*\.)?(' . $hosts_pattern . ')/[^"\']*)["\'](?:[^>]*)>([^<]+)</a>#i';
 
-        return preg_replace_callback( $pattern, function( $m ) {
+        return preg_replace_callback( $pattern, function( $m ) use ( $post_title ) {
             $url = $m[1];
-            $text = $m[3];
 
             preg_match( '#//([^/]+)#', $url, $host_match );
             $host = str_replace( 'www.', '', $host_match[1] );
             $host_lower = strtolower( explode( '.', $host )[0] );
-            if ( strtoupper( $host_lower ) === 'DDOWNLOAD' ) $host_lower = 'ddownload';
+            if ( $host_lower === 'DDOWNLOAD' ) $host_lower = 'ddownload';
 
-            return '<a href="' . esc_url( $url ) . '" class="download-btn download-btn-' . esc_attr( $host_lower ) . '" target="_blank" rel="noopener noreferrer">
-                <span class="btn-dot"></span> ' . esc_html( strtoupper( $host_lower ) ) . '
+            $display_name = $host_lower;
+
+            return '<a href="' . esc_url( $url ) . '" 
+                       title="Download ' . $post_title . '" 
+                       class="download-btn download-btn-' . esc_attr( $host_lower ) . '" 
+                       target="_blank" rel="noopener noreferrer">
+                <span class="btn-dot"></span> ' . esc_html( $display_name ) . '
             </a>';
         }, $content );
     }
@@ -73,34 +105,36 @@ class MaB_Core_Public {
         $hosters = get_option( 'mab_hosters', [] );
         $css = '';
         foreach ( $hosters as $hoster ) {
-            $host_lower = strtolower( str_replace( ' ', '', $hoster['name'] ) );
+            $name_clean = preg_replace('/^(https?:\/\/|www\.)/i', '', strtolower(trim($hoster['name'])));
+            $host_lower = preg_replace('/\..*$/', '', $name_clean); // Remove TLD for class
             $css .= ".download-btn-{$host_lower} { background: {$hoster['bg_color']}; color: {$hoster['text_color']}; }\n";
         }
 
         // Base + alive/dead CSS
-        $css .= "
-            .download-btn {
-                padding: 12px 24px;
-                border-radius: 50px;
-                font-weight: bold;
-                text-decoration: none !important;
-                display: inline-flex;
-                align-items: center;
-                gap: 10px;
-                transition: all 0.4s;
-                min-width: 160px;
-                justify-content: center;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                margin: 5px;
-            }
-            .btn-dot {
-                width: 14px; height: 14px; border-radius: 50%; background: #ccc; transition: all 0.4s;
-            }
+        $css .= ".download-btn{
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.375em;
+    border-radius: 0.375em;
+    color: #fff;
+    transition: all 0.3s;
+	line-height: 1.2;
+}
+
+.download-btn:hover{
+    color: #fff;
+}
+
+.btn-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
             .download-btn.alive .btn-dot {
                 background: #28a745; box-shadow: 0 0 8px #28a745; animation: pulse-green 2s infinite;
             }
-            .download-btn.dead { background: #f8d7da !important; color: #721c24 !important; }
-            .download-btn.dead .btn-dot { background: #dc3545; }
+            .download-btn.dead .btn-dot { background: #ff0000; }
             @keyframes pulse-green {
                 0%, 100% { box-shadow: 0 0 20px #28a745; }
                 50% { box-shadow: 0 0 30px #28a745; }

@@ -28,7 +28,10 @@ class MaB_Link_Checker {
         $dead_phrases = [];
 
         foreach ( $hosters as $hoster ) {
-            $match_domain = strtolower( str_replace( ' ', '', $hoster['name'] ) ) . '.com'; // Derive from name
+            // Derive match_domain
+            $name_clean = preg_replace('/^(https?:\/\/|www\.)/i', '', strtolower(trim($hoster['name'])));
+            $match_domain = (strpos($name_clean, '.') === false) ? $name_clean . '.com' : $name_clean;
+
             if ( strpos( $url, $match_domain ) !== false ) {
                 $dead_phrases = array_map( 'trim', explode( ',', strtolower( trim( $hoster['dead_messages'] ) ) ) );
                 break;

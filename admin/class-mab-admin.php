@@ -65,18 +65,18 @@ class MaB_Core_Admin {
         $sanitized = [];
         $seen_names = [];
         foreach ( $hosters as $hoster ) {
-            $name = trim( $hoster['name'] );
+            $name = preg_replace('/^https?:\/\//', '', trim( $hoster['name'] ) ); // Strip https://
             $dead_messages = trim( $hoster['dead_messages'] );
             $lower_name = strtolower( $name );
             if ( isset( $seen_names[$lower_name] ) ) {
                 wp_send_json_error( 'Duplicate File hosting: ' . $name );
             }
             $seen_names[$lower_name] = true;
-            if ( empty( $name ) || ! preg_match( '/^(https?:\/\/)?([a-z0-9-]{1,63}\.)+[a-z]{2,6}$/i', $name ) ) {
-                wp_send_json_error( 'Invalid File hosting format: Use abc.xxx or https://abc.xxx' );
+            if ( empty( $name ) || ! preg_match( '/^([a-z0-9-]{1,63}\.)+[a-z]{2,6}$/i', $name ) ) {
+                wp_send_json_error( 'Invalid File hosting format: Use abc.xxx' );
             }
             if ( empty( $dead_messages ) || ! preg_match( '/^[a-zA-Z ,-]+$/', $dead_messages ) ) {
-                wp_send_json_error( 'Invalid Dead messages: Only letters, commas, spaces, hyphens; no domains/numbers/special chars' );
+                wp_send_json_error( 'Invalid Dead messages: Only letters, commas, spaces, hyphens' );
             }
             $sanitized[] = [
                 'name' => sanitize_text_field( $name ),
