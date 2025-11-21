@@ -3,7 +3,7 @@
  * Plugin Name:       MaB Core
  * Plugin URI:        https://example.com/mab-core (add your site if needed)
  * Description:       One core plugin for all MaB functionalities. 
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 5.0
  * Requires PHP:      7.2
  * Author:            MaB Legends

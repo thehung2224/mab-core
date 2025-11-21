@@ -5,8 +5,12 @@ class MaB_Core_Admin {
         add_action( 'admin_menu', [ $this, 'add_menu' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
         add_action( 'wp_ajax_mab_save_hosters', [ $this, 'save_hosters' ] );
+        add_action( 'wp_ajax_mab_save_posts_settings', [ $this, 'save_posts_settings' ] );
     }
 
+    /**
+     * Adds the admin menu page for MaB Core settings.
+     */
     public function add_menu() {
         add_menu_page(
             __( 'MaB Core', 'mab-core' ),
@@ -19,12 +23,19 @@ class MaB_Core_Admin {
         );
     }
 
+    /**
+     * Enqueues admin scripts and styles, including color picker and media uploader.
+     */
     public function enqueue_assets( $hook ) {
         if ( $hook !== 'toplevel_page_mab-core' ) return;
-
+    
+        // Enqueue for color picker
         wp_enqueue_style( 'wp-color-picker' );
         wp_enqueue_script( 'wp-color-picker' );
-
+    
+        // Enqueue for media uploader (fixes wp.media not defined)
+        wp_enqueue_media();
+    
         wp_enqueue_style( 'mab-admin-css', MAB_CORE_URL . 'admin/assets/css/admin-style.css', [], MAB_CORE_VERSION );
         wp_enqueue_script( 'mab-admin-js', MAB_CORE_URL . 'admin/assets/js/admin-script.js', [ 'jquery', 'wp-color-picker' ], MAB_CORE_VERSION, true );
         wp_localize_script( 'mab-admin-js', 'mab_ajax', [
@@ -33,6 +44,9 @@ class MaB_Core_Admin {
         ] );
     }
 
+    /**
+     * Renders the main settings page with tabs.
+     */
     public function settings_page() {
         $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'download-links';
         ?>
@@ -42,12 +56,16 @@ class MaB_Core_Admin {
                 <a href="?page=mab-core&tab=download-links" class="nav-tab <?php echo esc_attr( $active_tab === 'download-links' ? 'nav-tab-active' : '' ); ?>">
                     <?php esc_html_e( 'Download Links', 'mab-core' ); ?>
                 </a>
-                <!-- Future tabs -->
+                <a href="?page=mab-core&tab=posts" class="nav-tab <?php echo esc_attr( $active_tab === 'posts' ? 'nav-tab-active' : '' ); ?>">
+                    <?php esc_html_e( 'Posts', 'mab-core' ); ?>
+                </a>
             </nav>
             <div class="tab-content">
                 <?php
                 if ( $active_tab === 'download-links' ) {
                     include MAB_CORE_PATH . 'admin/partials/settings-download-links.php';
+                } elseif ( $active_tab === 'posts' ) {
+                    include MAB_CORE_PATH . 'admin/partials/settings-posts.php';
                 }
                 ?>
             </div>
@@ -55,6 +73,9 @@ class MaB_Core_Admin {
         <?php
     }
 
+    /**
+     * Saves hosters settings via AJAX (for Download Links tab).
+     */
     public function save_hosters() {
         check_ajax_referer( 'mab_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -65,18 +86,18 @@ class MaB_Core_Admin {
         $sanitized = [];
         $seen_names = [];
         foreach ( $hosters as $hoster ) {
-            $name = preg_replace('/^https?:\/\//', '', trim( $hoster['name'] ) ); // Strip https://
+            $name = trim( $hoster['name'] );
             $dead_messages = trim( $hoster['dead_messages'] );
             $lower_name = strtolower( $name );
             if ( isset( $seen_names[$lower_name] ) ) {
                 wp_send_json_error( 'Duplicate File hosting: ' . $name );
             }
             $seen_names[$lower_name] = true;
-            if ( empty( $name ) || ! preg_match( '/^([a-z0-9-]{1,63}\.)+[a-z]{2,6}$/i', $name ) ) {
-                wp_send_json_error( 'Invalid File hosting format: Use abc.xxx' );
+            if ( empty( $name ) || ! preg_match( '/^(https?:\/\/)?([a-z0-9-]{1,63}\.)+[a-z]{2,6}$/i', $name ) ) {
+                wp_send_json_error( 'Invalid File hosting format: Use abc.xxx or https://abc.xxx' );
             }
             if ( empty( $dead_messages ) || ! preg_match( '/^[a-zA-Z ,-]+$/', $dead_messages ) ) {
-                wp_send_json_error( 'Invalid Dead messages: Only letters, commas, spaces, hyphens' );
+                wp_send_json_error( 'Invalid Dead messages: Only letters, commas, spaces, hyphens; no domains/numbers/special chars' );
             }
             $sanitized[] = [
                 'name' => sanitize_text_field( $name ),
@@ -86,6 +107,31 @@ class MaB_Core_Admin {
             ];
         }
         update_option( 'mab_hosters', $sanitized );
+        wp_send_json_success();
+    }
+
+    /**
+     * Saves posts settings via AJAX (for Posts tab, e.g., related posts).
+     */
+    public function save_posts_settings() {
+        check_ajax_referer( 'mab_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Permission denied' );
+        }
+    
+        $all = isset( $_POST['all'] ) ? (bool) $_POST['all'] : false;
+        $categories = isset( $_POST['categories'] ) ? array_map( 'intval', (array) $_POST['categories'] ) : [];
+        $custom_heading = isset( $_POST['custom_heading'] ) ? array_map( 'sanitize_text_field', (array) $_POST['custom_heading'] ) : [];
+        $placeholder_image = isset( $_POST['placeholder_image'] ) ? array_map( 'esc_url_raw', (array) $_POST['placeholder_image'] ) : [];
+    
+        $settings = [
+            'all' => $all,
+            'categories' => $categories,
+            'custom_heading' => $custom_heading,
+            'placeholder_image' => $placeholder_image,
+        ];
+    
+        update_option( 'mab_posts_related_settings', $settings );
         wp_send_json_success();
     }
 }

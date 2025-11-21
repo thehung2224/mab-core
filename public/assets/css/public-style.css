@@ -41,3 +41,87 @@
 .mab-btn.dead .mab-dot {
     background: #dc3545;
 }
+
+/* Related Posts Grid – Fully Responsive & Beautiful Borders */
+.mab-related-posts {
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 10px;
+}
+
+.mab-related-posts h5 {
+    text-align: center;
+    margin: 0 0 25px 0;
+    font-size: 22px;
+}
+
+.mab-related-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 columns on desktop */
+    gap: 20px;
+}
+
+.mab-related-item {
+    text-align: center;
+    background: #fff;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mab-related-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.mab-related-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.mab-related-item h4 {
+    margin: 12px 8px 15px;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.mab-related-item h4 a {
+    color: #333;
+    text-decoration: none;
+}
+
+.mab-related-item h4 a:hover {
+    color: #0068b7;
+}
+
+/* Tablet: 2 columns */
+@media (max-width: 992px) {
+    .mab-related-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile: 2 columns (as you requested) */
+@media (max-width: 680px) {
+    .mab-related-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    .mab-related-posts {
+        padding: 15px;
+    }
+    .mab-related-posts h3 {
+        font-size: 20px;
+    }
+    .mab-related-item h4 {
+        font-size: 14px;
+    }
+}
+
+/* Very small mobile: fallback to 1 column if needed */
+@media (max-width: 480px) {
+    .mab-related-grid {
+        grid-template-columns: 1fr;
+    }
+}

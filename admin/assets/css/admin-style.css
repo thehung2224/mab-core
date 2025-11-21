@@ -1,33 +1,61 @@
-.mab-collapsible {
-    cursor: pointer;
-    padding: 15px;
-    background: #f1f1f1;
-    border-radius: 4px;
-    margin-bottom: 0;
-}
-.mab-panel {
-    padding: 15px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-top: none;
-}
+/* admin-style.css: Styles for MaB Core admin settings pages */
+
+/* Table styles for settings (e.g., Download Links tab) */
 .mab-table th {
     text-align: left;
 }
-.mab-status.alive {
-    color: green;
-}
-.mab-status.dead {
-    color: red;
-}
-.mab-table th {
-    text-align: left;
-}
+
+/* Color picker input size */
 .color-picker {
     width: 100px;
 }
+
+/* Required star for form fields */
 .required-star {
-    color: #ff0000;
+    color: red !important;
     font-weight: bold;
     margin-left: 2px;
+}
+
+/* Input wrapper for alignment (e.g., with stars) */
+.mab-input-wrapper {
+    display: inline-block;
+}
+
+/* Form table styles for Posts tab (matches WP admin look) */
+.form-table th {
+    width: 200px;
+    vertical-align: top;
+    padding: 15px 10px 15px 0;
+}
+
+.form-table td {
+    padding: 15px 0;
+}
+
+.form-table .description {
+    font-style: italic;
+    color: #666;
+    margin-top: 5px;
+}
+/* Category item styling for Posts tab */
+.mab-category-item {
+    margin-bottom: 10px;
+}
+
+/* Category options block */
+.mab-category-options {
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.mab-category-options label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.mab-upload-button {
+    margin-left: 5px;
 }
