@@ -92,12 +92,27 @@ class MaB_Core_Admin {
         $categories = isset( $_POST['categories'] ) ? array_map( 'intval', (array) $_POST['categories'] ) : [];
         $custom_heading = isset( $_POST['custom_heading'] ) ? array_map( 'sanitize_text_field', (array) $_POST['custom_heading'] ) : [];
         $placeholder_image = isset( $_POST['placeholder_image'] ) ? array_map( 'esc_url_raw', (array) $_POST['placeholder_image'] ) : [];
+        $enable_external = isset( $_POST['enable_external_images'] ) ? (bool) $_POST['enable_external_images'] : false;
+        $external_domains_raw = $enable_external ? ( isset( $_POST['external_domains'] ) ? sanitize_textarea_field( wp_unslash( $_POST['external_domains'] ) ) : '' ) : '';
+        $external_domains = [];
+        if ( $enable_external ) {
+            $domains = array_map( 'trim', explode( "\n", $external_domains_raw ) );
+            foreach ( $domains as $domain ) {
+                if ( $domain ) {
+                    $clean_domain = preg_replace( '/^(https?:\/\/|www\.)/i', '', strtolower( $domain ) );
+                    $external_domains[] = $clean_domain;
+                }
+            }
+            $external_domains = array_slice( array_unique( $external_domains ), 0, 5 );
+        }
     
         $settings = [
-            'all' => $all,
-            'categories' => $categories,
-            'custom_heading' => $custom_heading,
-            'placeholder_image' => $placeholder_image,
+            'all'                    => $all,
+            'categories'             => $categories,
+            'custom_heading'         => $custom_heading,
+            'placeholder_image'      => $placeholder_image,
+            'enable_external_images' => $enable_external,
+            'external_image_domains' => $external_domains,
         ];
     
         MaB_Helpers::save_option_and_success( 'mab_posts_related_settings', $settings );

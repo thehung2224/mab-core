@@ -90,6 +90,11 @@ jQuery( document ).ready( function( $ ) {
         } );
     } );
 
+    // Toggle external domains textarea
+    $('input[name="mab_enable_external_images"]').on('change', function() {
+        $('#mab-external-domains').toggle(this.checked);
+    });
+
     // Toggle category list in Posts tab
     $('input[name="mab_related_all"]').on('change', function() {
         $('#mab-category-list').toggle( !this.checked );
@@ -142,7 +147,10 @@ jQuery( document ).ready( function( $ ) {
         $('input[name^="mab_placeholder_image"]').each(function() {
             const match = $(this).attr('name').match(/\[(\d+)\]/);
             if (match) placeholder_image[match[1]] = $(this).val().trim();
-        });      
+        }); 
+
+        const enable_external = $('input[name="mab_enable_external_images"]').is(':checked');
+        const external_domains_raw = enable_external ? $('textarea[name="mab_external_image_domains"]').val() : '';
 
         const data = {
             action: 'mab_save_posts_settings',
@@ -150,7 +158,9 @@ jQuery( document ).ready( function( $ ) {
             all: allChecked ? 1 : 0,
             categories: $('input[name="mab_related_categories[]"]:checked').map(function() { return this.value; }).get(),
             custom_heading: custom_heading,
-            placeholder_image: placeholder_image
+            placeholder_image: placeholder_image,
+            enable_external_images: enable_external ? 1 : 0,
+            external_domains: external_domains_raw
         };
 
         $.post(mab_ajax.url, data, function(res) {

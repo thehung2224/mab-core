@@ -148,12 +148,16 @@ class MaB_Core_Public {
     public function append_related_posts( $content ) {
         if ( ! is_singular( 'post' ) || is_admin() ) return $content;
     
-        $settings = get_option( 'mab_posts_related_settings', [
-            'all'              => true,
-            'categories'       => [],
-            'custom_heading'   => [],
-            'placeholder_image'=> []
-        ] );
+        $settings = get_option( 'mab_posts_related_settings', [] );
+        $defaults = [
+            'all'                    => true,
+            'categories'             => [],
+            'custom_heading'         => [],
+            'placeholder_image'      => [],
+            'enable_external_images' => false,
+            'external_image_domains' => []
+        ];
+        $settings = wp_parse_args( $settings, $defaults );
     
         $current_post_cats = wp_get_post_categories( get_the_ID(), [ 'fields' => 'ids' ] );
     
@@ -177,17 +181,26 @@ class MaB_Core_Public {
             if ( ! empty( $settings['custom_heading'][$cat_id] ) ) $heading = esc_html( $settings['custom_heading'][$cat_id] );
             if ( ! empty( $settings['placeholder_image'][$cat_id] ) ) $placeholder = esc_url( $settings['placeholder_image'][$cat_id] );
         }
+
+        $external_domains = [ 'fastpic.org' ];
+        if ( $settings['enable_external_images'] ) {
+            $external_domains = array_merge( $external_domains, $settings['external_image_domains'] );
+        }
     
         ob_start();
         ?>
         <div class="mab-related-posts">
             <h5><?php echo $heading; ?></h5>
             <div class="mab-related-grid">
-                <?php while ( $related_query->have_posts() ) : $related_query->the_post(); ?>
+                <?php while ( $related_query->have_posts() ) : $related_query->the_post(); 
+                    $external_image = MaB_Helpers::get_external_featured_image( get_the_ID(), $external_domains );
+                ?>
                     <div class="mab-related-item">
                         <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
                             <?php if ( has_post_thumbnail() ) : ?>
                                 <?php the_post_thumbnail( 'medium', [ 'loading' => 'lazy' ] ); ?>
+                            <?php elseif ( $external_image ) : ?>
+                                <img src="<?php echo $external_image; ?>" alt="<?php the_title_attribute(); ?>" loading="lazy">
                             <?php elseif ( $placeholder ) : ?>
                                 <img src="<?php echo $placeholder; ?>" alt="<?php the_title_attribute(); ?>" loading="lazy">
                             <?php else : ?>

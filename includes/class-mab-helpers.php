@@ -43,7 +43,7 @@ class MaB_Helpers {
 
         return $dead_phrases;
     }
-    
+
     /**
      * Verify AJAX request security (nonce and capability).
      * Sends error and exits if invalid.
@@ -64,5 +64,41 @@ class MaB_Helpers {
     public static function save_option_and_success( $option_name, $data ) {
         update_option( $option_name, $data );
         wp_send_json_success();
-    }    
+    }
+
+    /**
+     * Extract the first external featured image URL from post content matching allowed domains.
+     *
+     * @param int    $post_id         The post ID.
+     * @param array  $allowed_domains Array of allowed domains (cleaned, e.g., ['fastpic.org']).
+     * @return string The image URL or empty string if none found.
+     */
+    public static function get_external_featured_image( $post_id, $allowed_domains = [] ) {
+        if ( empty( $allowed_domains ) ) {
+            return '';
+        }
+
+        $post_content = get_post_field( 'post_content', $post_id );
+        if ( empty( $post_content ) ) {
+            return '';
+        }
+
+        if ( ! preg_match_all( '/https?:\/\/[^\s\)"\']+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)/i', $post_content, $matches ) ) {
+            return '';
+        }
+
+        $allowed_domains_lower = array_map( 'strtolower', $allowed_domains );
+
+        foreach ( $matches[0] as $img_url ) {
+            $parsed = parse_url( $img_url );
+            $host = isset( $parsed['host'] ) ? preg_replace( '/^www\./i', '', strtolower( $parsed['host'] ) ) : '';
+            foreach ( $allowed_domains_lower as $domain ) {
+                if ( substr( $host, -strlen( $domain ) ) === $domain ) {
+                    return esc_url( $img_url );
+                }
+            }
+        }
+
+        return '';
+    }
 }
