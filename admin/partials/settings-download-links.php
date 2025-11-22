@@ -22,13 +22,13 @@ $hosters = get_option( 'mab_hosters', [] );
                 <tr>
                     <td>
                         <div class="mab-input-wrapper">
-                            <input type="text" class="mab-required" data-label="File hosting" required pattern="(https?://)?([a-z0-9-]{1,63}\.)+[a-z]{2,6}" title="Enter valid domain like abc.xxx or https://abc.xxx" name="mab_hosters[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $hoster['name'] ); ?>">
+                            <input type="text" class="mab-required" required pattern="(https?://)?([a-z0-9-]{1,63}\.)+[a-z]{2,6}" title="Enter valid domain like abc.xxx or https://abc.xxx" name="mab_hosters[<?php echo esc_attr( $index ); ?>][name]" value="<?php echo esc_attr( $hoster['name'] ); ?>">
                             <span class="required-star">*</span>
                         </div>
                     </td>
                     <td>
                         <div class="mab-input-wrapper">
-                            <input type="text" class="mab-required" data-label="Dead messages" required pattern="^[a-zA-Z ,-]+$" title="Only letters, commas, spaces, hyphens" name="mab_hosters[<?php echo esc_attr( $index ); ?>][dead_messages]" value="<?php echo esc_attr( $hoster['dead_messages'] ); ?>" placeholder="not found,removed">
+                            <input type="text" class="mab-required" required pattern="^[a-zA-Z ,-]+$|^$" title="Only letters, commas, spaces, hyphens" name="mab_hosters[<?php echo esc_attr( $index ); ?>][dead_messages]" value="<?php echo esc_attr( $hoster['dead_messages'] ); ?>" placeholder="not found,removed">
                             <span class="required-star">*</span>
                         </div>
                     </td>

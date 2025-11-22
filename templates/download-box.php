@@ -3,7 +3,7 @@
     <div class="mab-buttons">
         <?php foreach ( $links as $link ) : ?>
             <a href="<?php echo esc_url( $link['url'] ); ?>" class="mab-btn" data-url="<?php echo esc_url( $link['url'] ); ?>" target="_blank" rel="nofollow noopener">
-                <span class="mab-dot"></span> <?php echo esc_html( strtoupper( $link['name'] ) ); ?>
+                <span class="mab-dot"></span> <?php echo esc_html( $link['name'] ); ?>
             </a>
         <?php endforeach; ?>
     </div>

@@ -51,5 +51,4 @@
             <p id="mab-message-posts"></p>
         </td>
     </tr>
-    <!-- Future rows here -->
 </table>

@@ -18,38 +18,21 @@ class MaB_Link_Checker {
 
         $response = wp_remote_get( $url, $args );
         if ( is_wp_error( $response ) ) {
-            set_transient( $cache_key, false, 600 );
+            set_transient( $cache_key, false, HOUR_IN_SECONDS );
             return false;
         }
 
         $body = strtolower( wp_remote_retrieve_body( $response ) );
-
-        $hosters = get_option( 'mab_hosters', [] );
-        $dead_phrases = [];
-
-        foreach ( $hosters as $hoster ) {
-            // Derive match_domain
-            $name_clean = preg_replace('/^(https?:\/\/|www\.)/i', '', strtolower(trim($hoster['name'])));
-            $match_domain = (strpos($name_clean, '.') === false) ? $name_clean . '.com' : $name_clean;
-
-            if ( strpos( $url, $match_domain ) !== false ) {
-                $dead_phrases = array_map( 'trim', explode( ',', strtolower( trim( $hoster['dead_messages'] ) ) ) );
-                break;
-            }
-        }
-
-        if ( empty( $dead_phrases ) ) {
-            $dead_phrases = [ 'file not found', 'has been removed', 'file has been deleted', 'no longer available' ];
-        }
+        $dead_phrases = MaB_Helpers::get_dead_phrases( $url );
 
         foreach ( $dead_phrases as $phrase ) {
-            if ( strpos( $body, $phrase ) !== false ) {
-                set_transient( $cache_key, false, 600 );
+            if ( stripos( $body, $phrase ) !== false ) {
+                set_transient( $cache_key, false, HOUR_IN_SECONDS );
                 return false;
             }
         }
 
-        set_transient( $cache_key, true, 600 );
+        set_transient( $cache_key, true, HOUR_IN_SECONDS );
         return true;
     }
 }

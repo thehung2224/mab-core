@@ -1,9 +1,12 @@
+// Combined public script for both shortcode and content buttons
 jQuery( function( $ ) {
-    function updateLinkStatuses() {
-        var $btns = $( '.mab-btn' );
-        var urls = $btns.map( function() { return $( this ).data( 'url' ); } ).get();
+    function updateLinkStatuses( selector = '.mab-btn, .download-btn' ) {
+        const $btns = $( selector );
+        const urls = [...new Set( $btns.map( ( i, el ) => $( el ).attr( 'href' ) || $( el ).data( 'url' ) ) )];
 
         if ( ! urls.length ) return;
+
+        $btns.addClass( 'checking' );
 
         $.post( mab_ajax.url, {
             action: 'mab_check_links',
@@ -12,12 +15,14 @@ jQuery( function( $ ) {
         }, function( res ) {
             if ( res.success ) {
                 $.each( res.data, function( url, alive ) {
-                    $( '.mab-btn[data-url="' + url + '"]' ).removeClass( 'alive dead' ).addClass( alive ? 'alive' : 'dead' );
+                    $( `${selector}[href="${url}"], ${selector}[data-url="${url}"]` )
+                        .removeClass( 'checking alive dead' )
+                        .addClass( alive ? 'alive' : 'dead' );
                 } );
             }
         } );
     }
 
     updateLinkStatuses();
-    setInterval( updateLinkStatuses, 45000 ); // Every 45 sec
+    setInterval( updateLinkStatuses, 45000 );
 } );

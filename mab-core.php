@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-define( 'MAB_CORE_VERSION', '1.0.0' );
+define( 'MAB_CORE_VERSION', '1.0.1' );
 define( 'MAB_CORE_PATH', plugin_dir_path( __FILE__ ) );
 define( 'MAB_CORE_URL', plugin_dir_url( __FILE__ ) );
 
@@ -26,6 +26,7 @@ define( 'MAB_CORE_URL', plugin_dir_url( __FILE__ ) );
 require_once MAB_CORE_PATH . 'includes/class-mab-activator.php';
 require_once MAB_CORE_PATH . 'includes/class-mab-deactivator.php';
 require_once MAB_CORE_PATH . 'includes/class-mab-link-checker.php';
+require_once MAB_CORE_PATH . 'includes/class-mab-helpers.php';
 
 require_once MAB_CORE_PATH . 'admin/class-mab-admin.php';
 require_once MAB_CORE_PATH . 'public/class-mab-public.php';

@@ -42,7 +42,7 @@
     background: #dc3545;
 }
 
-/* Related Posts Grid – Fully Responsive & Beautiful Borders */
+/* Related Posts Grid */
 .mab-related-posts {
     padding: 10px;
     background: #f9f9f9;
@@ -58,7 +58,7 @@
 
 .mab-related-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 columns on desktop */
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
 }
 
@@ -95,14 +95,13 @@
     color: #0068b7;
 }
 
-/* Tablet: 2 columns */
+/* Responsive */
 @media (max-width: 992px) {
     .mab-related-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* Mobile: 2 columns (as you requested) */
 @media (max-width: 680px) {
     .mab-related-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -119,7 +118,6 @@
     }
 }
 
-/* Very small mobile: fallback to 1 column if needed */
 @media (max-width: 480px) {
     .mab-related-grid {
         grid-template-columns: 1fr;
